@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Gerenciador de Gelato</title>
+    <title>Gerenciador de Gelato - Firebase</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -72,6 +80,22 @@
             font-size: 14px;
         }
 
+        .config-notice {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .config-notice strong {
+            color: #856404;
+            display: block;
+            margin-bottom: 5px;
+        }
+
         .input-group {
             margin-bottom: 20px;
         }
@@ -125,6 +149,11 @@
             transform: translateY(0);
         }
 
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .btn-secondary {
             background: #f5f5f5;
             color: #333;
@@ -158,6 +187,49 @@
             font-size: 14px;
         }
 
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         /* Main App */
         .app-container {
             display: none;
@@ -183,6 +255,11 @@
         .header h1 {
             color: #667eea;
             font-size: 24px;
+        }
+
+        .user-info {
+            font-size: 14px;
+            color: #666;
         }
 
         .header-actions {
@@ -223,6 +300,12 @@
         .event-info p {
             color: #666;
             font-size: 14px;
+        }
+
+        .event-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
         }
 
         .event-actions {
@@ -447,21 +530,36 @@
             }
             
             input {
-                font-size: 16px; /* Prevents zoom on focus in iOS */
+                font-size: 16px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading">
+        <div class="spinner"></div>
+        <p>Carregando...</p>
+    </div>
+
     <!-- Login Screen -->
-    <div id="loginScreen" class="login-container">
+    <div id="loginScreen" class="login-container" style="display: none;">
         <div class="login-box">
             <h1>🍦 Gelato Manager</h1>
-            <p>Sistema de Gerenciamento de Vendas</p>
+            <p>Sistema Compartilhado de Vendas</p>
+            
+            <div class="config-notice">
+                <strong>⚠️ Configuração Necessária</strong>
+                Para usar este sistema, você precisa configurar o Firebase. 
+                <a href="#" onclick="showInstructions(); return false;" style="color: #667eea; text-decoration: underline;">Ver instruções</a>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="successMessage" class="success-message" style="display: none;"></div>
             
             <div class="input-group">
-                <label for="loginUsername">Usuário</label>
-                <input type="text" id="loginUsername" placeholder="Digite seu usuário">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" placeholder="seu@email.com">
             </div>
             
             <div class="input-group">
@@ -469,8 +567,8 @@
                 <input type="password" id="loginPassword" placeholder="Digite sua senha">
             </div>
             
-            <button class="btn btn-primary" onclick="login()">Entrar</button>
-            <button class="btn btn-secondary" onclick="showRegister()">Criar Conta</button>
+            <button class="btn btn-primary" onclick="login()" id="loginBtn">Entrar</button>
+            <button class="btn btn-secondary" onclick="register()" id="registerBtn">Criar Conta</button>
         </div>
     </div>
 
@@ -478,7 +576,10 @@
     <div id="appScreen" class="app-container">
         <div class="container">
             <div class="header">
-                <h1>🍦 Gerenciador de Gelato</h1>
+                <div>
+                    <h1>🍦 Gerenciador de Gelato</h1>
+                    <div class="user-info" id="userInfo"></div>
+                </div>
                 <div class="header-actions">
                     <button class="btn btn-success btn-small" onclick="openEventModal()">+ Adicionar Evento</button>
                     <button class="btn btn-secondary btn-small" onclick="logout()">Sair</button>
@@ -486,7 +587,10 @@
             </div>
 
             <div class="events-container" id="eventsContainer">
-                <!-- Events will be loaded here -->
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Carregando eventos...</p>
+                </div>
             </div>
 
             <div class="chart-container">
@@ -545,103 +649,270 @@
         </div>
     </div>
 
+    <!-- Instructions Modal -->
+    <div id="instructionsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>📋 Como Configurar o Firebase</h2>
+                <button class="close-modal" onclick="closeInstructions()">&times;</button>
+            </div>
+            
+            <div style="line-height: 1.8; color: #333;">
+                <h3 style="margin: 20px 0 10px;">Passo 1: Criar Projeto Firebase</h3>
+                <ol style="padding-left: 20px;">
+                    <li>Acesse: <a href="https://console.firebase.google.com" target="_blank" style="color: #667eea;">console.firebase.google.com</a></li>
+                    <li>Clique em "Adicionar projeto" ou "Create a project"</li>
+                    <li>Digite um nome (ex: "gelato-manager")</li>
+                    <li>Desabilite o Google Analytics (opcional)</li>
+                    <li>Clique em "Criar projeto"</li>
+                </ol>
+
+                <h3 style="margin: 20px 0 10px;">Passo 2: Configurar Autenticação</h3>
+                <ol style="padding-left: 20px;">
+                    <li>No menu lateral, clique em "Authentication"</li>
+                    <li>Clique em "Get Started" ou "Começar"</li>
+                    <li>Clique em "Email/Password"</li>
+                    <li>Ative a primeira opção (Email/senha)</li>
+                    <li>Clique em "Save" ou "Salvar"</li>
+                </ol>
+
+                <h3 style="margin: 20px 0 10px;">Passo 3: Configurar Database</h3>
+                <ol style="padding-left: 20px;">
+                    <li>No menu lateral, clique em "Realtime Database"</li>
+                    <li>Clique em "Create Database"</li>
+                    <li>Escolha a localização (ex: us-central1)</li>
+                    <li>Selecione "Start in test mode"</li>
+                    <li>Clique em "Enable"</li>
+                </ol>
+
+                <h3 style="margin: 20px 0 10px;">Passo 4: Obter Configuração</h3>
+                <ol style="padding-left: 20px;">
+                    <li>Clique no ícone de engrenagem ⚙️ ao lado de "Project Overview"</li>
+                    <li>Clique em "Project settings"</li>
+                    <li>Role até "Your apps" e clique no ícone <code>&lt;/&gt;</code> (Web)</li>
+                    <li>Digite um nome (ex: "gelato-web")</li>
+                    <li>NÃO marque Firebase Hosting</li>
+                    <li>Clique em "Register app"</li>
+                    <li>Copie APENAS o objeto firebaseConfig (está dentro do código)</li>
+                </ol>
+
+                <h3 style="margin: 20px 0 10px;">Passo 5: Colar no Código</h3>
+                <ol style="padding-left: 20px;">
+                    <li>Abra o arquivo HTML em um editor de texto</li>
+                    <li>Encontre a linha que diz: <code>const firebaseConfig =</code></li>
+                    <li>Substitua todo o objeto pelos seus valores do Firebase</li>
+                    <li>Salve o arquivo</li>
+                    <li>Faça upload no GitHub novamente</li>
+                </ol>
+
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                    <strong style="color: #0369a1;">💡 Dica:</strong> 
+                    Depois de configurar, aguarde 2-3 minutos para as configurações do Firebase serem aplicadas!
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Data Storage
+        // ⚠️ ATENÇÃO: VOCÊ PRECISA CONFIGURAR ISSO COM SEUS DADOS DO FIREBASE
+        // Siga as instruções acima para obter suas credenciais
+        const firebaseConfig = {
+            apiKey: "AIzaSyB3oXeNB5OZOk19-Nh73JTxlniDpqfNigA",
+            authDomain: "gelato-manager.firebaseapp.com",
+            databaseURL: "https://gelato-manager-default-rtdb.firebaseio.com",
+            projectId: "gelato-manager",
+            storageBucket: "gelato-manager.firebasestorage.app",
+            messagingSenderId: "310406812351",
+            appId: "1:310406812351:web:71f492e580e0ed8193ec0a"
+        };
+
+        // Verificar se o Firebase está configurado
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "SUA_API_KEY_AQUI";
+
+        // Initialize Firebase
+        let app, auth, database;
         let currentUser = null;
         let currentEventId = null;
-        let events = [];
+        let eventsRef = null;
         let chart = null;
 
-        // Initialize
-        function init() {
-            loadUserData();
-            checkLogin();
+        function initFirebase() {
+            if (!isFirebaseConfigured) {
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+                return;
+            }
+
+            try {
+                app = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                database = firebase.database();
+                eventsRef = database.ref('events');
+
+                // Listen for auth state changes
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        currentUser = user;
+                        showApp();
+                    } else {
+                        showLogin();
+                    }
+                });
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                showError('Erro ao inicializar Firebase. Verifique a configuração.');
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+            }
         }
 
-        // Login System
-        function login() {
-            const username = document.getElementById('loginUsername').value.trim();
+        // Auth Functions
+        async function register() {
+            if (!isFirebaseConfigured) {
+                showError('Configure o Firebase primeiro! Clique em "Ver instruções"');
+                return;
+            }
+
+            const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
 
-            if (!username || !password) {
-                alert('Por favor, preencha todos os campos');
+            if (!email || !password) {
+                showError('Preencha todos os campos');
                 return;
             }
 
-            const users = JSON.parse(localStorage.getItem('gelato_users') || '[]');
-            const user = users.find(u => u.username === username && u.password === password);
-
-            if (user) {
-                currentUser = username;
-                localStorage.setItem('gelato_current_user', username);
-                showApp();
-            } else {
-                alert('Usuário ou senha incorretos');
-            }
-        }
-
-        function showRegister() {
-            const username = prompt('Escolha um nome de usuário:');
-            if (!username) return;
-
-            const password = prompt('Escolha uma senha:');
-            if (!password) return;
-
-            const users = JSON.parse(localStorage.getItem('gelato_users') || '[]');
-            
-            if (users.find(u => u.username === username)) {
-                alert('Este usuário já existe');
+            if (password.length < 6) {
+                showError('A senha deve ter pelo menos 6 caracteres');
                 return;
             }
 
-            users.push({ username, password });
-            localStorage.setItem('gelato_users', JSON.stringify(users));
-            alert('Conta criada com sucesso! Faça login.');
+            disableButtons(true);
+
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                showSuccess('Conta criada com sucesso!');
+            } catch (error) {
+                console.error('Registration error:', error);
+                if (error.code === 'auth/email-already-in-use') {
+                    showError('Este email já está cadastrado');
+                } else if (error.code === 'auth/invalid-email') {
+                    showError('Email inválido');
+                } else {
+                    showError('Erro ao criar conta: ' + error.message);
+                }
+            } finally {
+                disableButtons(false);
+            }
         }
 
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('gelato_current_user');
-            showLogin();
+        async function login() {
+            if (!isFirebaseConfigured) {
+                showError('Configure o Firebase primeiro! Clique em "Ver instruções"');
+                return;
+            }
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showError('Preencha todos os campos');
+                return;
+            }
+
+            disableButtons(true);
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                console.error('Login error:', error);
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    showError('Email ou senha incorretos');
+                } else if (error.code === 'auth/invalid-email') {
+                    showError('Email inválido');
+                } else {
+                    showError('Erro ao fazer login: ' + error.message);
+                }
+            } finally {
+                disableButtons(false);
+            }
         }
 
-        function checkLogin() {
-            const savedUser = localStorage.getItem('gelato_current_user');
-            if (savedUser) {
-                currentUser = savedUser;
-                showApp();
-            } else {
-                showLogin();
+        async function logout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Logout error:', error);
             }
         }
 
         function showLogin() {
+            document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('appScreen').classList.remove('active');
         }
 
         function showApp() {
+            document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appScreen').classList.add('active');
-            loadUserData();
-            renderEvents();
-            updateChart();
+            
+            document.getElementById('userInfo').textContent = `Logado como: ${currentUser.email}`;
+            
+            loadEvents();
         }
 
-        // Data Management
-        function loadUserData() {
-            if (!currentUser) return;
-            const key = `gelato_events_${currentUser}`;
-            events = JSON.parse(localStorage.getItem(key) || '[]');
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
         }
 
-        function saveUserData() {
-            if (!currentUser) return;
-            const key = `gelato_events_${currentUser}`;
-            localStorage.setItem(key, JSON.stringify(events));
+        function showSuccess(message) {
+            const successEl = document.getElementById('successMessage');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            setTimeout(() => {
+                successEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function disableButtons(disabled) {
+            document.getElementById('loginBtn').disabled = disabled;
+            document.getElementById('registerBtn').disabled = disabled;
+        }
+
+        function showInstructions() {
+            document.getElementById('instructionsModal').classList.add('active');
+        }
+
+        function closeInstructions() {
+            document.getElementById('instructionsModal').classList.remove('active');
         }
 
         // Event Management
+        function loadEvents() {
+            if (!eventsRef) return;
+
+            eventsRef.on('value', snapshot => {
+                const events = [];
+                snapshot.forEach(childSnapshot => {
+                    events.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                // Sort by date (newest first)
+                events.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                renderEvents(events);
+                updateChart(events);
+            });
+        }
+
         function openEventModal() {
             document.getElementById('eventModal').classList.add('active');
             document.getElementById('eventName').value = '';
@@ -652,7 +923,7 @@
             document.getElementById('eventModal').classList.remove('active');
         }
 
-        function addEvent() {
+        async function addEvent() {
             const name = document.getElementById('eventName').value.trim();
             const date = document.getElementById('eventDate').value;
 
@@ -661,26 +932,29 @@
                 return;
             }
 
-            const event = {
-                id: Date.now(),
-                name,
-                date,
-                gelatos: []
-            };
-
-            events.push(event);
-            saveUserData();
-            renderEvents();
-            updateChart();
-            closeEventModal();
+            try {
+                await eventsRef.push({
+                    name,
+                    date,
+                    gelatos: {},
+                    createdBy: currentUser.email,
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+                closeEventModal();
+            } catch (error) {
+                console.error('Error adding event:', error);
+                alert('Erro ao adicionar evento');
+            }
         }
 
-        function deleteEvent(eventId) {
-            if (confirm('Tem certeza que deseja excluir este evento?')) {
-                events = events.filter(e => e.id !== eventId);
-                saveUserData();
-                renderEvents();
-                updateChart();
+        async function deleteEvent(eventId) {
+            if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+
+            try {
+                await eventsRef.child(eventId).remove();
+            } catch (error) {
+                console.error('Error deleting event:', error);
+                alert('Erro ao excluir evento');
             }
         }
 
@@ -698,7 +972,7 @@
             currentEventId = null;
         }
 
-        function addGelato() {
+        async function addGelato() {
             const name = document.getElementById('gelatoName').value.trim();
             const weight = parseFloat(document.getElementById('gelatoWeight').value);
             const returned = parseFloat(document.getElementById('gelatoReturned').value);
@@ -715,36 +989,35 @@
 
             const sold = weight - returned;
 
-            const event = events.find(e => e.id === currentEventId);
-            if (event) {
-                event.gelatos.push({
-                    id: Date.now(),
+            try {
+                await eventsRef.child(currentEventId).child('gelatos').push({
                     name,
                     weight,
                     returned,
-                    sold
+                    sold,
+                    addedBy: currentUser.email,
+                    addedAt: firebase.database.ServerValue.TIMESTAMP
                 });
-                saveUserData();
-                renderEvents();
-                updateChart();
                 closeGelatoModal();
+            } catch (error) {
+                console.error('Error adding gelato:', error);
+                alert('Erro ao adicionar gelato');
             }
         }
 
-        function deleteGelato(eventId, gelatoId) {
-            if (confirm('Tem certeza que deseja excluir este gelato?')) {
-                const event = events.find(e => e.id === eventId);
-                if (event) {
-                    event.gelatos = event.gelatos.filter(g => g.id !== gelatoId);
-                    saveUserData();
-                    renderEvents();
-                    updateChart();
-                }
+        async function deleteGelato(eventId, gelatoId) {
+            if (!confirm('Tem certeza que deseja excluir este gelato?')) return;
+
+            try {
+                await eventsRef.child(eventId).child('gelatos').child(gelatoId).remove();
+            } catch (error) {
+                console.error('Error deleting gelato:', error);
+                alert('Erro ao excluir gelato');
             }
         }
 
         // Rendering
-        function renderEvents() {
+        function renderEvents(events) {
             const container = document.getElementById('eventsContainer');
             
             if (events.length === 0) {
@@ -761,7 +1034,8 @@
             }
 
             container.innerHTML = events.map(event => {
-                const totalSales = event.gelatos.reduce((sum, g) => sum + g.sold, 0);
+                const gelatos = event.gelatos ? Object.entries(event.gelatos) : [];
+                const totalSales = gelatos.reduce((sum, [_, g]) => sum + (g.sold || 0), 0);
                 const formattedDate = new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR');
 
                 return `
@@ -770,25 +1044,26 @@
                             <div class="event-info">
                                 <h2>${event.name}</h2>
                                 <p>📅 ${formattedDate}</p>
+                                <p class="event-meta">Criado por: ${event.createdBy || 'Usuário'}</p>
                             </div>
                             <div class="event-actions">
-                                <button class="btn btn-success btn-small" onclick="openGelatoModal(${event.id})">
+                                <button class="btn btn-success btn-small" onclick="openGelatoModal('${event.id}')">
                                     + Adicionar Gelato
                                 </button>
-                                <button class="btn btn-danger btn-small" onclick="deleteEvent(${event.id})">
+                                <button class="btn btn-danger btn-small" onclick="deleteEvent('${event.id}')">
                                     🗑️ Excluir
                                 </button>
                             </div>
                         </div>
 
-                        ${event.gelatos.length > 0 ? `
+                        ${gelatos.length > 0 ? `
                             <div class="gelatos-list">
                                 <h3 style="margin-bottom: 15px; color: #333;">Gelatos do Evento:</h3>
-                                ${event.gelatos.map(gelato => `
+                                ${gelatos.map(([gelatoId, gelato]) => `
                                     <div class="gelato-item">
                                         <div class="gelato-header">
                                             <span class="gelato-name">🍦 ${gelato.name}</span>
-                                            <button class="btn btn-danger btn-small" onclick="deleteGelato(${event.id}, ${gelato.id})" style="padding: 5px 10px; font-size: 12px;">
+                                            <button class="btn btn-danger btn-small" onclick="deleteGelato('${event.id}', '${gelatoId}')" style="padding: 5px 10px; font-size: 12px;">
                                                 🗑️
                                             </button>
                                         </div>
@@ -806,6 +1081,7 @@
                                                 <span style="color: #10b981;">${gelato.sold.toLocaleString('pt-BR')}g</span>
                                             </div>
                                         </div>
+                                        <p class="event-meta" style="margin-top: 10px;">Adicionado por: ${gelato.addedBy || 'Usuário'}</p>
                                     </div>
                                 `).join('')}
                             </div>
@@ -824,13 +1100,16 @@
             }).join('');
         }
 
-        function updateChart() {
+        function updateChart(events) {
             const ctx = document.getElementById('salesChart').getContext('2d');
             
-            const chartData = events.map(event => ({
-                name: event.name,
-                total: event.gelatos.reduce((sum, g) => sum + g.sold, 0)
-            }));
+            const chartData = events.map(event => {
+                const gelatos = event.gelatos ? Object.values(event.gelatos) : [];
+                return {
+                    name: event.name,
+                    total: gelatos.reduce((sum, g) => sum + (g.sold || 0), 0)
+                };
+            }).filter(d => d.total > 0);
 
             if (chart) {
                 chart.destroy();
@@ -879,8 +1158,8 @@
             });
         }
 
-        // Initialize app
-        init();
+        // Initialize
+        initFirebase();
     </script>
 </body>
 </html>
