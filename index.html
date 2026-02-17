@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gerenciador de Gelato</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Login Screen */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-box h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .login-box p {
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-small {
+            padding: 10px 20px;
+            width: auto;
+            font-size: 14px;
+        }
+
+        /* Main App */
+        .app-container {
+            display: none;
+        }
+
+        .app-container.active {
+            display: block;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Events Section */
+        .events-container {
+            margin-bottom: 30px;
+        }
+
+        .event-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .event-info h2 {
+            color: #333;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .event-info p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Gelato Items */
+        .gelatos-list {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+
+        .gelato-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 3px solid #10b981;
+        }
+
+        .gelato-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .gelato-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .gelato-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .gelato-detail {
+            background: #f0fdf4;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .gelato-detail label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .gelato-detail span {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .event-total {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .event-total h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .event-total .total-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        /* Chart Section */
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .chart-container h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        #salesChart {
+            max-height: 400px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 22px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .login-box {
+                padding: 30px 20px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+                width: 100%;
+            }
+
+            .event-card {
+                padding: 20px 15px;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .gelato-details {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .btn-small {
+                font-size: 13px;
+                padding: 8px 15px;
+            }
+
+            .event-total .total-value {
+                font-size: 24px;
+            }
+        }
+
+        /* iOS specific */
+        @supports (-webkit-touch-callout: none) {
+            .modal {
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            input {
+                font-size: 16px; /* Prevents zoom on focus in iOS */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h1>🍦 Gelato Manager</h1>
+            <p>Sistema de Gerenciamento de Vendas</p>
+            
+            <div class="input-group">
+                <label for="loginUsername">Usuário</label>
+                <input type="text" id="loginUsername" placeholder="Digite seu usuário">
+            </div>
+            
+            <div class="input-group">
+                <label for="loginPassword">Senha</label>
+                <input type="password" id="loginPassword" placeholder="Digite sua senha">
+            </div>
+            
+            <button class="btn btn-primary" onclick="login()">Entrar</button>
+            <button class="btn btn-secondary" onclick="showRegister()">Criar Conta</button>
+        </div>
+    </div>
+
+    <!-- App Screen -->
+    <div id="appScreen" class="app-container">
+        <div class="container">
+            <div class="header">
+                <h1>🍦 Gerenciador de Gelato</h1>
+                <div class="header-actions">
+                    <button class="btn btn-success btn-small" onclick="openEventModal()">+ Adicionar Evento</button>
+                    <button class="btn btn-secondary btn-small" onclick="logout()">Sair</button>
+                </div>
+            </div>
+
+            <div class="events-container" id="eventsContainer">
+                <!-- Events will be loaded here -->
+            </div>
+
+            <div class="chart-container">
+                <h2>📊 Gráfico de Vendas por Evento</h2>
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Modal -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Novo Evento</h2>
+                <button class="close-modal" onclick="closeEventModal()">&times;</button>
+            </div>
+            
+            <div class="input-group">
+                <label for="eventName">Nome do Evento</label>
+                <input type="text" id="eventName" placeholder="Ex: Festa Aniversário">
+            </div>
+            
+            <div class="input-group">
+                <label for="eventDate">Data do Evento</label>
+                <input type="date" id="eventDate">
+            </div>
+            
+            <button class="btn btn-primary" onclick="addEvent()">Criar Evento</button>
+        </div>
+    </div>
+
+    <!-- Gelato Modal -->
+    <div id="gelatoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Gelato</h2>
+                <button class="close-modal" onclick="closeGelatoModal()">&times;</button>
+            </div>
+            
+            <div class="input-group">
+                <label for="gelatoName">Nome do Gelato</label>
+                <input type="text" id="gelatoName" placeholder="Ex: Chocolate">
+            </div>
+            
+            <div class="input-group">
+                <label for="gelatoWeight">Peso Inicial (gramas)</label>
+                <input type="number" id="gelatoWeight" placeholder="Ex: 5000">
+            </div>
+            
+            <div class="input-group">
+                <label for="gelatoReturned">Quanto Voltou (gramas)</label>
+                <input type="number" id="gelatoReturned" placeholder="Ex: 1500">
+            </div>
+            
+            <button class="btn btn-primary" onclick="addGelato()">Adicionar Gelato</button>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage
+        let currentUser = null;
+        let currentEventId = null;
+        let events = [];
+        let chart = null;
+
+        // Initialize
+        function init() {
+            loadUserData();
+            checkLogin();
+        }
+
+        // Login System
+        function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('gelato_users') || '[]');
+            const user = users.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                currentUser = username;
+                localStorage.setItem('gelato_current_user', username);
+                showApp();
+            } else {
+                alert('Usuário ou senha incorretos');
+            }
+        }
+
+        function showRegister() {
+            const username = prompt('Escolha um nome de usuário:');
+            if (!username) return;
+
+            const password = prompt('Escolha uma senha:');
+            if (!password) return;
+
+            const users = JSON.parse(localStorage.getItem('gelato_users') || '[]');
+            
+            if (users.find(u => u.username === username)) {
+                alert('Este usuário já existe');
+                return;
+            }
+
+            users.push({ username, password });
+            localStorage.setItem('gelato_users', JSON.stringify(users));
+            alert('Conta criada com sucesso! Faça login.');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('gelato_current_user');
+            showLogin();
+        }
+
+        function checkLogin() {
+            const savedUser = localStorage.getItem('gelato_current_user');
+            if (savedUser) {
+                currentUser = savedUser;
+                showApp();
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('appScreen').classList.remove('active');
+        }
+
+        function showApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appScreen').classList.add('active');
+            loadUserData();
+            renderEvents();
+            updateChart();
+        }
+
+        // Data Management
+        function loadUserData() {
+            if (!currentUser) return;
+            const key = `gelato_events_${currentUser}`;
+            events = JSON.parse(localStorage.getItem(key) || '[]');
+        }
+
+        function saveUserData() {
+            if (!currentUser) return;
+            const key = `gelato_events_${currentUser}`;
+            localStorage.setItem(key, JSON.stringify(events));
+        }
+
+        // Event Management
+        function openEventModal() {
+            document.getElementById('eventModal').classList.add('active');
+            document.getElementById('eventName').value = '';
+            document.getElementById('eventDate').value = '';
+        }
+
+        function closeEventModal() {
+            document.getElementById('eventModal').classList.remove('active');
+        }
+
+        function addEvent() {
+            const name = document.getElementById('eventName').value.trim();
+            const date = document.getElementById('eventDate').value;
+
+            if (!name || !date) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            const event = {
+                id: Date.now(),
+                name,
+                date,
+                gelatos: []
+            };
+
+            events.push(event);
+            saveUserData();
+            renderEvents();
+            updateChart();
+            closeEventModal();
+        }
+
+        function deleteEvent(eventId) {
+            if (confirm('Tem certeza que deseja excluir este evento?')) {
+                events = events.filter(e => e.id !== eventId);
+                saveUserData();
+                renderEvents();
+                updateChart();
+            }
+        }
+
+        // Gelato Management
+        function openGelatoModal(eventId) {
+            currentEventId = eventId;
+            document.getElementById('gelatoModal').classList.add('active');
+            document.getElementById('gelatoName').value = '';
+            document.getElementById('gelatoWeight').value = '';
+            document.getElementById('gelatoReturned').value = '';
+        }
+
+        function closeGelatoModal() {
+            document.getElementById('gelatoModal').classList.remove('active');
+            currentEventId = null;
+        }
+
+        function addGelato() {
+            const name = document.getElementById('gelatoName').value.trim();
+            const weight = parseFloat(document.getElementById('gelatoWeight').value);
+            const returned = parseFloat(document.getElementById('gelatoReturned').value);
+
+            if (!name || !weight || isNaN(weight) || isNaN(returned)) {
+                alert('Por favor, preencha todos os campos corretamente');
+                return;
+            }
+
+            if (returned > weight) {
+                alert('O peso que voltou não pode ser maior que o peso inicial');
+                return;
+            }
+
+            const sold = weight - returned;
+
+            const event = events.find(e => e.id === currentEventId);
+            if (event) {
+                event.gelatos.push({
+                    id: Date.now(),
+                    name,
+                    weight,
+                    returned,
+                    sold
+                });
+                saveUserData();
+                renderEvents();
+                updateChart();
+                closeGelatoModal();
+            }
+        }
+
+        function deleteGelato(eventId, gelatoId) {
+            if (confirm('Tem certeza que deseja excluir este gelato?')) {
+                const event = events.find(e => e.id === eventId);
+                if (event) {
+                    event.gelatos = event.gelatos.filter(g => g.id !== gelatoId);
+                    saveUserData();
+                    renderEvents();
+                    updateChart();
+                }
+            }
+        }
+
+        // Rendering
+        function renderEvents() {
+            const container = document.getElementById('eventsContainer');
+            
+            if (events.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                        </svg>
+                        <h3>Nenhum evento cadastrado</h3>
+                        <p>Clique em "Adicionar Evento" para começar</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = events.map(event => {
+                const totalSales = event.gelatos.reduce((sum, g) => sum + g.sold, 0);
+                const formattedDate = new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR');
+
+                return `
+                    <div class="event-card">
+                        <div class="event-header">
+                            <div class="event-info">
+                                <h2>${event.name}</h2>
+                                <p>📅 ${formattedDate}</p>
+                            </div>
+                            <div class="event-actions">
+                                <button class="btn btn-success btn-small" onclick="openGelatoModal(${event.id})">
+                                    + Adicionar Gelato
+                                </button>
+                                <button class="btn btn-danger btn-small" onclick="deleteEvent(${event.id})">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
+                        </div>
+
+                        ${event.gelatos.length > 0 ? `
+                            <div class="gelatos-list">
+                                <h3 style="margin-bottom: 15px; color: #333;">Gelatos do Evento:</h3>
+                                ${event.gelatos.map(gelato => `
+                                    <div class="gelato-item">
+                                        <div class="gelato-header">
+                                            <span class="gelato-name">🍦 ${gelato.name}</span>
+                                            <button class="btn btn-danger btn-small" onclick="deleteGelato(${event.id}, ${gelato.id})" style="padding: 5px 10px; font-size: 12px;">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                        <div class="gelato-details">
+                                            <div class="gelato-detail">
+                                                <label>Peso Inicial</label>
+                                                <span>${gelato.weight.toLocaleString('pt-BR')}g</span>
+                                            </div>
+                                            <div class="gelato-detail">
+                                                <label>Voltou</label>
+                                                <span>${gelato.returned.toLocaleString('pt-BR')}g</span>
+                                            </div>
+                                            <div class="gelato-detail" style="background: #dcfce7;">
+                                                <label>Vendido</label>
+                                                <span style="color: #10b981;">${gelato.sold.toLocaleString('pt-BR')}g</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <div class="event-total">
+                                <h3>Venda Total do Evento</h3>
+                                <div class="total-value">${totalSales.toLocaleString('pt-BR')}g</div>
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 30px; color: #999;">
+                                Nenhum gelato adicionado ainda
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            const chartData = events.map(event => ({
+                name: event.name,
+                total: event.gelatos.reduce((sum, g) => sum + g.sold, 0)
+            }));
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.map(d => d.name),
+                    datasets: [{
+                        label: 'Vendas (gramas)',
+                        data: chartData.map(d => d.total),
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toLocaleString('pt-BR') + 'g';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('pt-BR') + 'g';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
